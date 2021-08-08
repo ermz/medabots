@@ -47,6 +47,8 @@
 # @version ^0.2.0
 
 _minter: address
+ticker: String[4]
+description: String[100]
 
 tokenIdToOwner: HashMap[uint256, address]
 
@@ -58,8 +60,16 @@ tokenOwnerCount: HashMap[address, uint256]
 # This could be wrong, I think arrays in Vyper can't be dynamic
 
 @external
-def __init__():
+def __init__(_ticker: String[4], _description: String[100]):
     self._minter = msg.sender
+    self.ticker = _ticker
+    self.description = _description
+
+@external
+def reassignMinter(newMinter: address):
+    assert msg.sender == self._minter, "Only the minter may be able to reassign minter position"
+    assert newMinter != ZERO_ADDRESS, "New minter must be a valid address"
+    self._minter = newMinter
 
 # Needs change to a more useful function
 @external
@@ -80,11 +90,13 @@ def viewIdApprovals(_token_id: uint256) -> bool:
 @external
 def mint(_receiver: address, _tokenId: uint256) -> bool:
     assert msg.sender == self._minter, "Only the 'minter' can 'mint', hence why he's the 'minter'."
-    assert _receiver != ZERO_ADDRESS
-    assert self.tokenIdToOwner[_tokenId] == ZERO_ADDRESS
+    assert _receiver != ZERO_ADDRESS, "The reciving address can't be a zero address"
+    assert self.tokenIdToOwner[_tokenId] == ZERO_ADDRESS, "A token with this token I.D already exists"
 
     self.tokenIdToOwner[_tokenId] = _receiver
     self.tokenOwnerCount[_receiver] += 1
+    # Set tokenIdToApprovals for minter aswell
+    self.tokenIdtoApprovals[_tokenId][msg.sender] = True
 
     return True
 
