@@ -39,8 +39,18 @@ def __init__(_erc721Addr: address):
 
 @external
 @view
+def viewMedabot(_medaId: uint256) -> Medabot:
+    return self.medabots[_medaId]
+
+@external
+@view
 def viewMedabotsForSale(_medaId: uint256) -> uint256:
     return self.medabotsForSale[_medaId]
+
+@internal
+def _randomNumber(_gene: int128) -> int128:
+    newNum: int128 = convert((block.timestamp * block.number) / 1_000_000_000, int128)
+    return newNum + _gene
 
 @external
 @payable
@@ -52,8 +62,8 @@ def createMedabot(_name: String[50], _xGene: int128, _yGene: int128):
         medaId: self.medabotCounter,
         name: _name,
         generation: 1,
-        xGene: _xGene,
-        yGene: _yGene
+        xGene: self._randomNumber(_xGene),
+        yGene: self._randomNumber(_yGene)
     })
     self.medabots[self.medabotCounter] = new_medabot
     iErc721(self.erc721Addr).mint(msg.sender, self.medabotCounter)
@@ -68,7 +78,7 @@ def sellMedabot(_medaId: uint256, price: uint256):
 @payable
 def buyMedabot(_medaId: uint256):
     assert self.medabotsForSale[_medaId] > 0, "This medabot is not for sale"
-    assert msg.value > (self.medabotsForSale[_medaId] * 1_000_000_000_000_000_000), "You don't have enough to purchase this medabot"
+    assert msg.value >= (self.medabotsForSale[_medaId] * 1_000_000_000_000_000_000), "You don't have enough to purchase this medabot"
     assert iErc721(self.erc721Addr).viewIdApprovals(_medaId) == True, "Assert that only this contract can call this function, other than owner"
     previousOwner: address = iErc721(self.erc721Addr).viewTokenOwner(_medaId)
     iErc721(self.erc721Addr).transferFromApproved(msg.sender, _medaId)
@@ -76,8 +86,13 @@ def buyMedabot(_medaId: uint256):
     self.fundsEarned[previousOwner] += msg.value
 
 @external
+def leaseMedabot(_medaId: uint256, price: uint256):
+    assert iErc721(self.erc721Addr).viewTokenOwner(_medaId) == msg.sender, "You can't lease out a medabot that isn't yours"
+    self.medabotsForRent[_medaId] = price
+
+@external
 @payable
-def rentMedapot(_rentalMedaId: uint256, _ownerMedaId: uint256, _name: String[50]):
+def rentMedabot(_rentalMedaId: uint256, _ownerMedaId: uint256, _name: String[50]):
     assert self.medabotsForRent[_rentalMedaId] > 0, "This medabot is not up for rental"
     assert msg.value >= (self.medabotsForRent[_rentalMedaId] * 1_000_000_000_000_000_000), "Insufficient funds for rental"
     assert iErc721(self.erc721Addr).viewTokenOwner(_rentalMedaId) != msg.sender, "You already own this medabot, you can't loan it"
@@ -96,8 +111,8 @@ def rentMedapot(_rentalMedaId: uint256, _ownerMedaId: uint256, _name: String[50]
         medaId: self.medabotCounter,
         name: _name,
         generation: newGeneration,
-        xGene: newXgene,
-        yGene: newYgene
+        xGene: self._randomNumber(newXgene),
+        yGene: self._randomNumber(newYgene)
     })
     self.medabots[self.medabotCounter] = new_medabot
     iErc721(self.erc721Addr).mint(msg.sender, self.medabotCounter)
@@ -122,17 +137,23 @@ def breedMedabot(_medaId1: uint256, _medaId2: uint256, _name: String[50]):
     newYgene: int128 = medabot_2.yGene
     new_generation: uint256 = 0
     if medabot_1.generation > medabot_2.generation:
-        new_generation = medabot_1.generation
+        new_generation = medabot_1.generation + 1
     else:
-        new_generation = medabot_2.generation
+        new_generation = medabot_2.generation + 1
     
     new_medabot: Medabot = Medabot({
         medaId: self.medabotCounter,
         name: _name,
         generation: new_generation,
-        xGene: newXgene,
-        yGene: newYgene
+        xGene: self._randomNumber(newXgene),
+        yGene: self._randomNumber(newYgene)
     })
     self.medabots[self.medabotCounter] = new_medabot
     iErc721(self.erc721Addr).mint(msg.sender, self.medabotCounter)
     self.medabotCounter += 1
+
+@external
+def transferMedabot(_receiver: address, _medaId: uint256):
+    assert _receiver != ZERO_ADDRESS, "You can only send to valid addresses"
+    assert iErc721(self.erc721Addr).viewTokenOwner(_medaId) == msg.sender, "You are not the owner of this Token"
+    iErc721(self.erc721Addr).transferFromApproved(_receiver, _medaId)
