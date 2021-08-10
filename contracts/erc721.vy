@@ -134,7 +134,12 @@ def transferFromApproved(_receiver: address, _tokenId: uint256) -> bool:
     previousOwner: address = self.tokenIdToOwner[_tokenId]
 
     self.tokenIdToOwner[_tokenId] = _receiver
-    self.tokenIdtoApprovals[_tokenId][msg.sender] = False
+    # Setting tokenIdToApproval will cause error, if I need admin to control all
+    # of the token in medabots.vy
+    # self.tokenIdtoApprovals[_tokenId][msg.sender] = False
+    if msg.sender != self._minter:
+        self.tokenIdtoApprovals[_tokenId][msg.sender] = False
+
     self.tokenOwnerCount[previousOwner] -= 1
     self.tokenOwnerCount[_receiver] += 1
     return True

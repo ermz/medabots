@@ -36,3 +36,24 @@ def test_rent_medabot(mint_medabots, bob, charles):
         mint_medabots.rentMedabot(0, 1, "BanMega", {"from": charles, "value": "2 ether"})
     with brownie.reverts("You are not the owner of your medabot"):
         mint_medabots.rentMedabot(0, 3, "BanMega", {"from": charles, "value": "4 ether"})
+    mint_medabots.rentMedabot(2, 0, "BanTaro", {"from": bob, "value": "3 ether"})
+    assert mint_medabots.viewMedabot(3)["name"] == "BanTaro"
+    assert mint_medabots.balance() == 6_000_000_000_000_000_000
+    mint_medabots.withdrawEarnings({"from": charles})
+    assert mint_medabots.balance() == 3_000_000_000_000_000_000
+
+def test_breed_medabot(mint_medabots, bob):
+    mint_medabots.createMedabot("Rokusho", 2, 6, {"from": bob, "value": "1 ether"})
+    with brownie.reverts("Medabot 1 doesn't belong to you"):
+        mint_medabots.breedMedabot(1, 2, "MegaRoku", {"from": bob, "value": "2 ether"})
+    with brownie.reverts("You must pay 2 ether to breed medabots"):
+        mint_medabots.breedMedabot(0, 2, "RokuSher", {"from": bob, "value": "1 ether"})
+    mint_medabots.breedMedabot(0, 2, "RokuSher", {"from": bob, "value": "2 ether"})
+    assert mint_medabots.viewMedabot(3)["name"] == "RokuSher"
+
+def test_transfer_medabot(mint_medabots, bob, charles):
+    mint_medabots.transferMedabot(charles, 0, {"from": bob})
+    with brownie.reverts("You can't lease out a medabot that isn't yours"):
+        mint_medabots.leaseMedabot(0, 3, {"from": bob})
+    mint_medabots.transferMedabot(bob, 0, {"from": charles})
+    mint_medabots.leaseMedabot(0, 3, {"from": bob})

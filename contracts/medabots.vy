@@ -118,7 +118,7 @@ def rentMedabot(_rentalMedaId: uint256, _ownerMedaId: uint256, _name: String[50]
     iErc721(self.erc721Addr).mint(msg.sender, self.medabotCounter)
     self.medabotCounter += 1
     self.fundsEarned[iErc721(self.erc721Addr).viewTokenOwner(_rentalMedaId)] += msg.value
-
+ 
 @external
 def withdrawEarnings():
     assert self.fundsEarned[msg.sender] > 0, "You have nothing to withdraw at the moment"
@@ -128,7 +128,7 @@ def withdrawEarnings():
 @external
 @payable
 def breedMedabot(_medaId1: uint256, _medaId2: uint256, _name: String[50]):
-    assert msg.value >= (2 * 1_000_000_000_000_000_000), "You must pay 2 ether to breed medabots"
+    assert msg.value >= (2_000_000_000_000_000_000), "You must pay 2 ether to breed medabots"
     assert iErc721(self.erc721Addr).viewTokenOwner(_medaId1) == msg.sender, "Medabot 1 doesn't belong to you"
     assert iErc721(self.erc721Addr).viewTokenOwner(_medaId2) == msg.sender, "Medabot 2 doesn't belong to you"
     medabot_1: Medabot = self.medabots[_medaId1]
